@@ -63,6 +63,7 @@ docs = [
   "myst_parser",
   "furo",
   "sphinx-inline-tabs",
+  "enchant",
 ]
 docsauto = ["sphinx-autobuild"]
 lint = [
