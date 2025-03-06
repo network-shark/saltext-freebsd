@@ -13,10 +13,10 @@ import logging
 import os
 import re
 
-import salt.utils.decorators as decorators
 import salt.utils.files
 import salt.utils.path
 from salt.exceptions import CommandNotFoundError
+from salt.utils.decorators import memoize
 
 __func_alias__ = {"reload_": "reload"}
 
@@ -40,7 +40,7 @@ def __virtual__():
     )
 
 
-@decorators.memoize
+@memoize
 def _cmd(jail=None):
     """
     Return full path to service command
@@ -75,9 +75,8 @@ def _get_jail_path(jail):
     jails = __salt__["cmd.run_stdout"](f"{jls} -n jid name path")
     for j in jails.splitlines():
         jid, jname, path = (x.split("=")[1].strip() for x in j.split())
-        if jid == jail or jname == jail:
+        if jail in [jid, jname]:
             return path.rstrip("/")
-    # XΧΧ, TODO, not sure how to handle nonexistent jail
     return ""
 
 
@@ -507,9 +506,7 @@ def status(name, sig=None, jail=None):
     results = {}
     for service in services:
         cmd = f"{_cmd(jail)} {service} onestatus"
-        results[service] = not __salt__["cmd.retcode"](
-            cmd, python_shell=False, ignore_retcode=True
-        )
+        results[service] = not __salt__["cmd.retcode"](cmd, python_shell=False, ignore_retcode=True)
     if contains_globbing:
         return results
     return results[name]

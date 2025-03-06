@@ -2,13 +2,15 @@
     :codeauthor: asomers <asomers@gmail.com>
 """
 
-import pytest
+from textwrap import dedent
+from unittest.mock import MagicMock
+from unittest.mock import mock_open
+from unittest.mock import patch
 
-import salt.modules.freebsd_sysctl as freebsd_sysctl
-import salt.modules.systemd_service as systemd
+import pytest
 from salt.exceptions import CommandExecutionError
-from tests.support.helpers import dedent
-from tests.support.mock import MagicMock, mock_open, patch
+from salt.modules import freebsd_sysctl
+from salt.modules import systemd_service as systemd
 
 
 @pytest.fixture
@@ -78,7 +80,7 @@ def test_persist_no_conf_failure():
         freebsd_sysctl.__salt__,
         {"cmd.run_stdout": mock_cmd, "cmd.run_all": mock_asn_cmd},
     ):
-        with patch("salt.utils.files.fopen", mock_open()) as m_open:
+        with patch("salt.utils.files.fopen", mock_open()) as m_open:  # pylint: disable=W0612
             pytest.raises(
                 CommandExecutionError,
                 freebsd_sysctl.persist,
@@ -154,9 +156,7 @@ def test_persist_updated_tunable():
     """
 
     with patch("salt.utils.files.fopen", mock_open()):
-        assert (
-            freebsd_sysctl.persist("vfs.usermount", 1, "/boot/loader.conf") == "Updated"
-        )
+        assert freebsd_sysctl.persist("vfs.usermount", 1, "/boot/loader.conf") == "Updated"
 
 
 def test_show():
@@ -165,6 +165,7 @@ def test_show():
     """
     # Mock just a small portion of the full "sysctl -ae" output, but be
     # sure to include a multi-line value.
+    # pylint: disable=too-many-function-args
     mock_cmd = MagicMock(
         return_value=dedent(
             """\
@@ -183,6 +184,7 @@ def test_show():
     with patch.dict(freebsd_sysctl.__salt__, {"cmd.run": mock_cmd}):
         ret = freebsd_sysctl.show()
         assert "FreeBSD" == ret["kern.ostype"]
+
         assert (
             dedent(
                 """\
@@ -194,3 +196,5 @@ def test_show():
             )
             == ret["kern.version"]
         )
+
+    # pylint: enable=too-many-function-args

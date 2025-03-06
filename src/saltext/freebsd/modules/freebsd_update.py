@@ -101,7 +101,7 @@ def _wrapper(orig, pre="", post="", err_=None, run_args=None, **kwargs):
     """
     ret = ""  # the message to be returned
     cmd = _cmd(**kwargs)
-    cmd_str = " ".join([x for x in (pre, cmd, post, orig)])
+    cmd_str = " ".join(list(pre, cmd, post, orig))
     if run_args and isinstance(run_args, dict):
         res = __salt__["cmd.run_all"](cmd_str, **run_args)
     else:
@@ -113,17 +113,13 @@ def _wrapper(orig, pre="", post="", err_=None, run_args=None, **kwargs):
 
     if "retcode" in res and res["retcode"] != 0:
         msg = " ".join([x for x in (res["stdout"], res["stderr"]) if x])
-        ret = 'Unable to run "{}" with run_args="{}". Error: {}'.format(
-            cmd_str, run_args, msg
-        )
+        ret = f'Unable to run "{cmd_str}" with run_args="{run_args}". Error: {msg}'
         log.error(ret)
     else:
         try:
             ret = res["stdout"]
         except KeyError:
-            log.error(
-                "cmd.run_all did not return a dictionary with a key named 'stdout'"
-            )
+            log.error("cmd.run_all did not return a dictionary with a key named 'stdout'")
     return ret
 
 
@@ -136,6 +132,13 @@ def fetch(**kwargs):
 
     kwargs:
         Parameters of freebsd-update command.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' freebsd-update.fetch
+
     """
     # fetch continues when no controlling terminal is present
     pre = ""
@@ -158,6 +161,13 @@ def install(**kwargs):
 
     kwargs:
         Parameters of freebsd-update command.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' freebsd-update.install
+
     """
     return _wrapper("install", **kwargs)
 
@@ -171,6 +181,12 @@ def rollback(**kwargs):
 
     kwargs:
         Parameters of freebsd-update command.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' freebsd-update.rollback
     """
     return _wrapper("rollback", **kwargs)
 
@@ -184,6 +200,13 @@ def update(**kwargs):
 
     kwargs:
         Parameters of freebsd-update command.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' freebsd-update.update
+
     """
     stdout = {}
 
@@ -206,26 +229,11 @@ def ids(**kwargs):
 
     kwargs:
         Parameters of freebsd-update command.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' freebsd-update.ids
     """
     return _wrapper("IDS", **kwargs)
-
-
-def upgrade(**kwargs):
-    """
-    .. versionadded:: 2016.3.4
-
-    Dummy function used only to print a message that upgrade is not available.
-    The reason is that upgrade needs manual intervention and reboot, so even if
-    used with:
-
-       yes | freebsd-upgrade -r VERSION
-
-    the additional freebsd-update install that needs to run after the reboot
-    cannot be implemented easily.
-
-    kwargs:
-        Parameters of freebsd-update command.
-    """
-    msg = "freebsd-update upgrade not yet implemented."
-    log.warning(msg)
-    return msg

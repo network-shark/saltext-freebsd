@@ -79,7 +79,8 @@ import re
 import salt.utils.data
 import salt.utils.functools
 import salt.utils.pkg
-from salt.exceptions import CommandExecutionError, MinionError
+from salt.exceptions import CommandExecutionError
+from salt.exceptions import MinionError
 
 log = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ log = logging.getLogger(__name__)
 __virtualname__ = "pkg"
 
 
+# pylint: disable=unused-argument
 def __virtual__():
     """
     Load as 'pkg' on FreeBSD versions less than 10.
@@ -129,9 +131,7 @@ def _get_repo_options(fromrepo=None, packagesite=None):
     environment variables) will be used.
     """
     root = (
-        fromrepo
-        if fromrepo is not None
-        else __salt__["config.get"]("freebsdpkg.PACKAGEROOT", None)
+        fromrepo if fromrepo is not None else __salt__["config.get"]("freebsdpkg.PACKAGEROOT", None)
     )
     site = (
         packagesite
@@ -158,9 +158,7 @@ def _match(names):
 
     # Look for full matches
     full_pkg_strings = []
-    out = __salt__["cmd.run_stdout"](
-        ["pkg_info"], output_loglevel="trace", python_shell=False
-    )
+    out = __salt__["cmd.run_stdout"](["pkg_info"], output_loglevel="trace", python_shell=False)
     for line in out.splitlines():
         try:
             full_pkg_strings.append(line.split()[0])
@@ -180,9 +178,7 @@ def _match(names):
                 ambiguous.append(name)
                 errors.append(
                     "Ambiguous package '{}'. Full name/version required. "
-                    "Possible matches: {}".format(
-                        name, ", ".join([f"{name}-{x}" for x in cver])
-                    )
+                    "Possible matches: {}".format(name, ", ".join([f"{name}-{x}" for x in cver]))
                 )
 
     # Find packages that did not match anything
@@ -210,9 +206,7 @@ def latest_version(*names, **kwargs):
 
 
 # available_version is being deprecated
-available_version = salt.utils.functools.alias_function(
-    latest_version, "available_version"
-)
+available_version = salt.utils.functools.alias_function(latest_version, "available_version")
 
 
 def version(*names, **kwargs):
@@ -294,9 +288,7 @@ def list_pkgs(versions_as_list=False, with_origin=False, **kwargs):
     """
     versions_as_list = salt.utils.data.is_true(versions_as_list)
     # not yet implemented or not applicable
-    if any(
-        [salt.utils.data.is_true(kwargs.get(x)) for x in ("removed", "purge_desired")]
-    ):
+    if any(salt.utils.data.is_true(kwargs.get(x)) for x in ("removed", "purge_desired")):
         return {}
 
     if "pkg.list_pkgs" in __context__ and kwargs.get("use_context", True):
@@ -382,11 +374,9 @@ def install(name=None, refresh=False, fromrepo=None, pkgs=None, sources=None, **
         salt '*' pkg.install <package name>
     """
     try:
-        pkg_params, pkg_type = __salt__["pkg_resource.parse_targets"](
-            name, pkgs, sources, **kwargs
-        )
+        pkg_params, pkg_type = __salt__["pkg_resource.parse_targets"](name, pkgs, sources, **kwargs)
     except MinionError as exc:
-        raise CommandExecutionError(exc)
+        raise CommandExecutionError(str(exc)) from exc
 
     if not pkg_params:
         return {}
@@ -456,10 +446,10 @@ def remove(name=None, pkgs=None, **kwargs):
     try:
         pkg_params = __salt__["pkg_resource.parse_targets"](name, pkgs)[0]
     except MinionError as exc:
-        raise CommandExecutionError(exc)
+        raise CommandExecutionError(str(exc)) from exc
 
     old = list_pkgs()
-    targets, errors = _match([x for x in pkg_params])
+    targets, errors = _match(list(pkg_params))
     for error in errors:
         log.error(error)
     if not targets:
@@ -558,7 +548,7 @@ def file_dict(*packages, **kwargs):
             files[pkg].append(line)
         elif ":/" in line:
             pkg, fn = line.split(":", 1)
-            pkg, ver = pkg.rsplit("-", 1)
+            pkg, _ = pkg.rsplit("-", 1)
             files[pkg] = [fn]
         else:
             continue  # unexpected string
